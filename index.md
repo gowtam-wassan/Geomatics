@@ -41,15 +41,14 @@ body {
 ---
 
 <div class="hero">
-  <h1>🌍 Gautam's GeoSpatial Portal</h1>
+  <h1>🌍GeoSpatial Portal</h1>
   <p>Exploring Earth through Maps, Data & Models</p>
 </div>
 
 ---
 
 ## 🔥 My Work
-
-- 🌧️ WRF Weather Modeling  
+ 
 - 🛰️ LULC Change Detection  
 - 📊 GIS Analysis  
 - 🌍 Remote Sensing  
