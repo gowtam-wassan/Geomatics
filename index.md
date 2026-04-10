@@ -1,45 +1,89 @@
 ---
-title: "Home"
-description: "Welcome to our website"
-layout: home
+layout: default
+title: Home
 ---
 
-# Welcome to Our Website
+<style>
+body {
+  font-family: Arial, sans-serif;
+}
 
-A brief tagline or description of what your site is about.
+/* 🌍 Hero */
+.hero {
+  text-align: center;
+  padding: 60px 20px;
+}
 
-## About Us
+/* 🎞️ Scroll Gallery */
+.scroll-container {
+  display: flex;
+  overflow-x: auto;
+  gap: 20px;
+  padding: 20px;
+  scroll-behavior: smooth;
+}
 
-We are a team dedicated to [your mission here]. Our goal is to provide
-[value proposition] to [target audience].
+.scroll-container img {
+  height: 260px;
+  border-radius: 15px;
+  transition: transform 0.3s;
+}
 
-## What We Do
+.scroll-container img:hover {
+  transform: scale(1.08);
+}
 
-- **Service One** – Short description of this offering
-- **Service Two** – Short description of this offering
-- **Service Three** – Short description of this offering
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+</style>
 
-## Featured Work
+---
 
-### Project Title One
-A brief description of this project and what makes it notable.
-[View Project](#)
+<div class="hero">
+  <h1>🌍 Gautam's GeoSpatial Portal</h1>
+  <p>Exploring Earth through Maps, Data & Models</p>
+</div>
 
-### Project Title Two
-A brief description of this project and what makes it notable.
-[View Project](#)
+---
 
-## Testimonials
+## 🔥 My Work
 
-> "This is a great product/service. Highly recommend!"
-> — Happy Customer
+- 🌧️ WRF Weather Modeling  
+- 🛰️ LULC Change Detection  
+- 📊 GIS Analysis  
+- 🌍 Remote Sensing  
 
-## Get In Touch
+---
 
-We'd love to hear from you!
+## 🎞️ Geo Gallery (Scroll 👉)
 
-- 📧 Email: [hello@yoursite.com](mailto:hello@yoursite.com)
-- 🐦 Twitter: [@yourhandle](https://twitter.com/yourhandle)
-- 💼 LinkedIn: [Your Name](https://linkedin.com/in/yourprofile)
+<div class="scroll-container">
+  <img src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa">
+  <img src="https://images.unsplash.com/photo-1462331940025-496dfbfc7564">
+  <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee">
+  <img src="https://images.unsplash.com/photo-1521295121783-8a321d551ad2">
+  <img src="https://images.unsplash.com/photo-1476611338391-6f395a0ebc7b">
+</div>
 
-[Contact Us](#contact) | [Learn More](#about)
+---
+
+## 📊 Skills
+
+- 🗺️ QGIS, ArcGIS  
+- 🛰️ GEE, SNAP  
+- 🐍 Python  
+- 🌦️ WRF Model  
+
+---
+
+## 📬 Contact
+
+- 📧 your-email@example.com  
+- 💻 GitHub: https://github.com  
+
+---
+
+## ⭐ Quote
+
+> "Maps tell stories. Data makes them powerful."
