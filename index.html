@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoVista — Spatial Intelligence Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #04080f;
+      --surface:   #080f1c;
+      --panel:     #0c1726;
+      --border:    #1a2d46;
+      --accent:    #00e5ff;
+      --accent2:   #39ff8f;
+      --accent3:   #ff6b35;
+      --text:      #c8dcea;
+      --muted:     #5a7a92;
+      --white:     #f0f8ff;
+      --glow:      rgba(0,229,255,.18);
+      --glow2:     rgba(57,255,143,.14);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* ── Custom cursor ── */
+    #cursor {
+      width: 12px; height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9999;
+      transform: translate(-50%,-50%);
+      transition: transform .1s, width .2s, height .2s, background .2s;
+      mix-blend-mode: screen;
+    }
+    #cursor-ring {
+      width: 36px; height: 36px;
+      border: 1px solid rgba(0,229,255,.5);
+      border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9998;
+      transform: translate(-50%,-50%);
+      transition: transform .25s ease, width .2s, height .2s, opacity .2s;
+    }
+    body:hover #cursor-ring { opacity: 1; }
+
+    /* ── Global noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: .025;
+      pointer-events: none; z-index: 1000;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 3rem;
+      background: rgba(4,8,15,.72);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.1rem; font-weight: 700;
+      color: var(--white); letter-spacing: -.02em;
+    }
+    .logo span { color: var(--accent); }
+    nav ul { list-style: none; display: flex; gap: 2.5rem; }
+    nav ul li a {
+      font-size: .82rem; text-decoration: none; color: var(--muted);
+      letter-spacing: .1em; text-transform: uppercase;
+      transition: color .2s;
+    }
+    nav ul li a:hover { color: var(--accent); }
+    .nav-cta {
+      font-family: 'Space Mono', monospace;
+      font-size: .78rem; padding: .55rem 1.3rem;
+      border: 1px solid var(--accent); color: var(--accent);
+      background: transparent; cursor: pointer;
+      letter-spacing: .08em; text-transform: uppercase;
+      transition: background .2s, color .2s;
+    }
+    .nav-cta:hover { background: var(--accent); color: var(--bg); }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: grid; grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 8rem 3rem 4rem;
+      position: relative; overflow: hidden;
+    }
+
+    /* Animated grid background */
+    #hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,.05) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridDrift 30s linear infinite;
+    }
+    @keyframes gridDrift {
+      0%   { background-position: 0 0; }
+      100% { background-position: 60px 60px; }
+    }
+
+    /* Radial glow */
+    #hero::after {
+      content: '';
+      position: absolute; top: 10%; left: 55%;
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(0,229,255,.09) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: pulse 6s ease-in-out infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); opacity: .7; }
+      to   { transform: scale(1.15); opacity: 1; }
+    }
+
+    .hero-text { position: relative; z-index: 2; }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: .5rem;
+      font-family: 'Space Mono', monospace;
+      font-size: .72rem; color: var(--accent2);
+      letter-spacing: .15em; text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .hero-tag::before {
+      content: '';
+      width: 24px; height: 1px; background: var(--accent2);
+    }
+    h1 {
+      font-size: clamp(2.8rem, 5vw, 5rem);
+      font-weight: 800; line-height: 1.02;
+      color: var(--white);
+      letter-spacing: -.03em;
+      margin-bottom: 1.5rem;
+    }
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-desc {
+      font-size: 1.05rem; line-height: 1.8;
+      color: var(--muted); max-width: 480px;
+      margin-bottom: 2.5rem;
+    }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .btn-primary {
+      padding: .85rem 2rem;
+      background: var(--accent); color: var(--bg);
+      border: none; font-family: 'Space Mono', monospace;
+      font-size: .82rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      cursor: pointer;
+      clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,229,255,.35);
+    }
+    .btn-ghost {
+      padding: .85rem 2rem;
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+      font-family: 'Space Mono', monospace;
+      font-size: .82rem; letter-spacing: .06em; text-transform: uppercase;
+      cursor: pointer; transition: border-color .2s, color .2s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Hero stats bar */
+    .hero-stats {
+      margin-top: 4rem; padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 3rem;
+    }
+    .stat-item { }
+    .stat-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.6rem; font-weight: 700;
+      color: var(--white);
+    }
+    .stat-num span { color: var(--accent); }
+    .stat-label {
+      font-size: .72rem; color: var(--muted);
+      letter-spacing: .1em; text-transform: uppercase;
+      margin-top: .25rem;
+    }
+
+    /* Hero globe / map visualization */
+    .hero-visual {
+      position: relative; z-index: 2;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .globe-wrap {
+      position: relative; width: 480px; height: 480px;
+    }
+    .globe-svg { width: 100%; height: 100%; }
+
+    /* Orbit ring animations */
+    .orbit {
+      position: absolute; border-radius: 50%;
+      border: 1px solid rgba(0,229,255,.15);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .orbit-1 { width: 110%; height: 110%; animation: spin 20s linear infinite; }
+    .orbit-2 { width: 130%; height: 130%; animation: spin 32s linear infinite reverse; }
+    .orbit-3 { width: 155%; height: 155%; border-color: rgba(57,255,143,.1); animation: spin 45s linear infinite; }
+
+    @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+    /* Satellite dots on orbits */
+    .sat {
+      position: absolute;
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent), 0 0 20px rgba(0,229,255,.5);
+    }
+
+    /* ── FEATURES SECTION ── */
+    #features {
+      padding: 7rem 3rem;
+      position: relative;
+    }
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .72rem; color: var(--accent);
+      letter-spacing: .2em; text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: clamp(2rem, 3.5vw, 3rem);
+      font-weight: 800; color: var(--white);
+      letter-spacing: -.03em; line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      font-size: 1rem; color: var(--muted);
+      max-width: 520px; line-height: 1.8;
+      margin-bottom: 4rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+    .feat-card {
+      background: var(--surface);
+      padding: 2.5rem 2rem;
+      position: relative; overflow: hidden;
+      transition: background .3s;
+    }
+    .feat-card:hover { background: var(--panel); }
+    .feat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0; transition: opacity .3s;
+    }
+    .feat-card:hover::before { opacity: 1; }
+    .feat-icon {
+      width: 44px; height: 44px;
+      margin-bottom: 1.5rem;
+      color: var(--accent);
+    }
+    .feat-card:nth-child(3n+2) .feat-icon { color: var(--accent2); }
+    .feat-card:nth-child(3n+3) .feat-icon { color: var(--accent3); }
+    .feat-title {
+      font-size: 1rem; font-weight: 700;
+      color: var(--white); margin-bottom: .75rem;
+      letter-spacing: -.01em;
+    }
+    .feat-desc {
+      font-size: .875rem; color: var(--muted);
+      line-height: 1.7;
+    }
+    .feat-num {
+      position: absolute; bottom: 1.5rem; right: 1.5rem;
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; color: var(--border);
+    }
+
+    /* ── DATA SECTION (bento grid) ── */
+    #data {
+      padding: 7rem 3rem;
+      background: var(--surface);
+      position: relative; overflow: hidden;
+    }
+    #data::before {
+      content: '';
+      position: absolute; bottom: -200px; right: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--glow2) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: auto;
+      gap: 1rem;
+      margin-top: 4rem;
+    }
+    .bento-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 2rem;
+      position: relative; overflow: hidden;
+      transition: border-color .3s, transform .3s;
+    }
+    .bento-card:hover { border-color: rgba(0,229,255,.3); transform: translateY(-2px); }
+    .bc-1 { grid-column: span 5; }
+    .bc-2 { grid-column: span 7; }
+    .bc-3 { grid-column: span 4; }
+    .bc-4 { grid-column: span 4; }
+    .bc-5 { grid-column: span 4; }
+    .bc-6 { grid-column: span 7; }
+    .bc-7 { grid-column: span 5; }
+
+    .bento-tag {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; color: var(--accent);
+      letter-spacing: .15em; text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .bento-title {
+      font-size: 1.15rem; font-weight: 700;
+      color: var(--white); margin-bottom: .5rem;
+    }
+    .bento-desc {
+      font-size: .82rem; color: var(--muted); line-height: 1.7;
+    }
+
+    /* Mini map viz inside bento */
+    .mini-map {
+      margin-top: 1.5rem;
+      height: 140px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      position: relative; overflow: hidden;
+      border-radius: 2px;
+    }
+    .mini-map svg { width: 100%; height: 100%; }
+
+    /* Bar chart */
+    .bar-chart {
+      margin-top: 1.5rem;
+      display: flex; align-items: flex-end;
+      gap: 6px; height: 100px;
+    }
+    .bar {
+      flex: 1;
+      background: linear-gradient(to top, var(--accent), rgba(0,229,255,.3));
+      border-radius: 1px 1px 0 0;
+      animation: barGrow .8s ease-out both;
+    }
+    @keyframes barGrow {
+      from { transform: scaleY(0); transform-origin: bottom; }
+      to   { transform: scaleY(1); transform-origin: bottom; }
+    }
+
+    /* Pulse dot grid */
+    .dot-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 6px; margin-top: 1.5rem;
+    }
+    .dot-grid span {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      display: block;
+    }
+    .dot-grid span.active { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+    .dot-grid span.semi  { background: rgba(57,255,143,.3); }
+
+    /* ── METRICS TICKER ── */
+    #ticker {
+      padding: 1.5rem 0;
+      background: var(--accent);
+      overflow: hidden; position: relative;
+    }
+    .ticker-inner {
+      display: flex; gap: 4rem;
+      animation: tickerScroll 25s linear infinite;
+      width: max-content;
+    }
+    @keyframes tickerScroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .ticker-item {
+      font-family: 'Space Mono', monospace;
+      font-size: .75rem; font-weight: 700;
+      color: var(--bg); letter-spacing: .1em;
+      text-transform: uppercase; white-space: nowrap;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .ticker-item::after { content: '◆'; opacity: .4; }
+
+    /* ── USE CASES ── */
+    #usecases {
+      padding: 7rem 3rem;
+    }
+    .cases-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem; margin-top: 4rem;
+    }
+    .case-card {
+      border: 1px solid var(--border);
+      padding: 2.5rem;
+      position: relative; overflow: hidden;
+      background: var(--surface);
+      transition: border-color .3s;
+    }
+    .case-card:hover { border-color: rgba(0,229,255,.25); }
+    .case-card::after {
+      content: '';
+      position: absolute; bottom: 0; right: 0;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle at bottom right, var(--glow), transparent);
+    }
+    .case-num {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; color: var(--muted);
+      margin-bottom: 1.5rem; letter-spacing: .1em;
+    }
+    .case-title {
+      font-size: 1.35rem; font-weight: 700;
+      color: var(--white); margin-bottom: .75rem;
+    }
+    .case-desc {
+      font-size: .88rem; color: var(--muted);
+      line-height: 1.8; margin-bottom: 1.5rem;
+    }
+    .case-tags { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .tag {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; padding: .3rem .7rem;
+      border: 1px solid var(--border); color: var(--muted);
+      letter-spacing: .08em;
+    }
+
+    /* ── CTA ── */
+    #cta {
+      padding: 7rem 3rem;
+      background: var(--surface);
+      text-align: center; position: relative; overflow: hidden;
+    }
+    #cta::before {
+      content: '';
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px; height: 400px;
+      background: radial-gradient(ellipse, rgba(0,229,255,.07) 0%, transparent 70%);
+    }
+    .cta-title {
+      font-size: clamp(2.5rem, 4vw, 4rem);
+      font-weight: 800; color: var(--white);
+      letter-spacing: -.03em; line-height: 1.1;
+      margin-bottom: 1.5rem; position: relative;
+    }
+    .cta-sub {
+      font-size: 1rem; color: var(--muted);
+      max-width: 480px; margin: 0 auto 2.5rem;
+      line-height: 1.8;
+    }
+    .cta-actions { display: flex; justify-content: center; gap: 1rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 3rem;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center;
+      justify-content: space-between;
+    }
+    .footer-logo {
+      font-family: 'Space Mono', monospace;
+      font-size: .95rem; color: var(--muted);
+    }
+    .footer-logo span { color: var(--accent); }
+    .footer-copy {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; color: var(--muted);
+      letter-spacing: .08em;
+    }
+    .footer-links { display: flex; gap: 2rem; }
+    .footer-links a {
+      font-size: .75rem; color: var(--muted);
+      text-decoration: none; letter-spacing: .08em;
+      text-transform: uppercase; transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--accent); }
+
+    /* ── ANIMATIONS on scroll ── */
+    .reveal {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ── MAP SECTION ── */
+    #maps {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      background: var(--bg);
+      padding-top: 72px; /* nav height */
+    }
+    .map-header {
+      padding: 2rem 3rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 2rem;
+      background: var(--surface);
+    }
+    .map-header-title {
+      font-size: 1rem; font-weight: 700; color: var(--white);
+    }
+    .map-header-sub {
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem; color: var(--muted); letter-spacing: .08em;
+    }
+    .map-badge {
+      display: flex; align-items: center; gap: .4rem;
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; color: var(--accent2);
+      letter-spacing: .1em; text-transform: uppercase;
+      margin-left: auto;
+    }
+    .map-badge::before {
+      content: ''; width: 7px; height: 7px;
+      background: var(--accent2); border-radius: 50%;
+      box-shadow: 0 0 6px var(--accent2);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink { 50% { opacity: .3; } }
+
+    .map-workspace {
+      flex: 1; display: flex;
+      min-height: calc(100vh - 72px - 70px);
+    }
+
+    /* Left Panel */
+    .map-panel {
+      width: 300px; min-width: 300px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    .panel-section {
+      border-bottom: 1px solid var(--border);
+      padding: 1.2rem 1.4rem;
+    }
+    .panel-section-title {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; color: var(--accent);
+      letter-spacing: .15em; text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    /* Layer toggles */
+    .layer-item {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: .55rem 0;
+      border-bottom: 1px solid rgba(26,45,70,.5);
+      cursor: pointer;
+    }
+    .layer-item:last-child { border-bottom: none; }
+    .layer-left { display: flex; align-items: center; gap: .7rem; }
+    .layer-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .layer-name {
+      font-size: .8rem; color: var(--text);
+      line-height: 1.3;
+    }
+    .layer-source {
+      font-family: 'Space Mono', monospace;
+      font-size: .58rem; color: var(--muted);
+      letter-spacing: .06em;
+    }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative; width: 34px; height: 18px; flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--border); border-radius: 18px;
+      cursor: pointer; transition: background .2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 12px; height: 12px;
+      left: 3px; top: 3px;
+      background: var(--muted); border-radius: 50%;
+      transition: transform .2s, background .2s;
+    }
+    .toggle input:checked + .toggle-slider { background: rgba(0,229,255,.25); }
+    .toggle input:checked + .toggle-slider::before {
+      transform: translateX(16px);
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    /* Opacity slider */
+    .opacity-row {
+      display: flex; align-items: center; gap: .7rem;
+      margin-top: .5rem; padding-top: .5rem;
+    }
+    .opacity-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .6rem; color: var(--muted);
+      min-width: 55px; letter-spacing: .06em;
+    }
+    input[type=range] {
+      flex: 1; height: 3px;
+      -webkit-appearance: none;
+      background: var(--border); border-radius: 2px; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    /* Basemap selector */
+    .basemap-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: .5rem;
+    }
+    .basemap-opt {
+      border: 1px solid var(--border);
+      padding: .6rem;
+      cursor: pointer;
+      text-align: center;
+      font-size: .7rem; color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      letter-spacing: .06em;
+      transition: border-color .2s, color .2s, background .2s;
+      border-radius: 1px;
+    }
+    .basemap-opt.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,.06); }
+    .basemap-opt:hover { border-color: rgba(0,229,255,.4); color: var(--text); }
+    .basemap-thumb {
+      width: 100%; height: 36px;
+      margin-bottom: .4rem; border-radius: 1px;
+      display: block;
+    }
+
+    /* Coordinates display */
+    .coords-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: .7rem .9rem;
+      font-family: 'Space Mono', monospace;
+      font-size: .68rem; color: var(--accent2);
+      letter-spacing: .06em; line-height: 1.8;
+      border-radius: 1px;
+    }
+    .coords-label { color: var(--muted); }
+
+    /* Bhuvan info box */
+    .bhuvan-badge {
+      display: flex; align-items: center; gap: .6rem;
+      background: rgba(57,255,143,.06);
+      border: 1px solid rgba(57,255,143,.2);
+      padding: .7rem .9rem; border-radius: 1px;
+      margin-bottom: .8rem;
+    }
+    .bhuvan-badge svg { color: var(--accent2); flex-shrink: 0; }
+    .bhuvan-badge-text { font-size: .73rem; color: var(--text); line-height: 1.5; }
+    .bhuvan-badge-text strong { color: var(--accent2); font-size: .65rem;
+      font-family: 'Space Mono', monospace; letter-spacing: .06em; }
+
+    /* Map container */
+    .map-container {
+      flex: 1; position: relative;
+      background: #0a1520;
+    }
+    #bhuvan-map {
+      width: 100%; height: 100%;
+      min-height: calc(100vh - 72px - 70px);
+    }
+
+    /* Map overlay UI */
+    .map-toolbar {
+      position: absolute; top: 1rem; right: 1rem; z-index: 400;
+      display: flex; flex-direction: column; gap: .5rem;
+    }
+    .map-btn {
+      width: 36px; height: 36px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Mono', monospace; font-size: .85rem;
+      transition: border-color .2s, color .2s;
+    }
+    .map-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .map-scale {
+      position: absolute; bottom: 1.5rem; left: 1rem; z-index: 400;
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; color: var(--muted);
+      background: rgba(4,8,15,.75);
+      border: 1px solid var(--border);
+      padding: .3rem .7rem;
+      letter-spacing: .06em;
+    }
+    .map-coords-bar {
+      position: absolute; bottom: 1.5rem; right: 1rem; z-index: 400;
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem; color: var(--accent2);
+      background: rgba(4,8,15,.85);
+      border: 1px solid var(--border);
+      padding: .3rem .9rem;
+      letter-spacing: .06em;
+    }
+
+    /* Leaflet dark skin tweaks */
+    .leaflet-container { background: #04080f !important; }
+    .leaflet-control-zoom a {
+      background: var(--surface) !important;
+      border-color: var(--border) !important;
+      color: var(--text) !important;
+      font-family: 'Space Mono', monospace !important;
+    }
+    .leaflet-control-zoom a:hover { color: var(--accent) !important; }
+    .leaflet-control-attribution {
+      background: rgba(4,8,15,.8) !important;
+      color: var(--muted) !important;
+      font-size: .6rem !important;
+    }
+    .leaflet-control-attribution a { color: var(--accent) !important; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      #hero { grid-template-columns: 1fr; text-align: center; }
+      .hero-visual { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .cases-grid { grid-template-columns: 1fr; }
+      .bento { grid-template-columns: 1fr; }
+      .bc-1,.bc-2,.bc-3,.bc-4,.bc-5,.bc-6,.bc-7 { grid-column: span 1; }
+      nav ul { display: none; }
+      footer { flex-direction: column; gap: 1.5rem; text-align: center; }
+      .map-panel { width: 100%; min-width: unset; }
+      .map-workspace { flex-direction: column; }
+    }
+  </style>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Geo<span>Vista</span></div>
+  <ul>
+    <li><a href="#features">Platform</a></li>
+    <li><a href="#data">Data</a></li>
+    <li><a href="#usecases">Solutions</a></li>
+    <li><a href="#maps" id="nav-maps-link">Maps</a></li>
+    <li><a href="#cta">Pricing</a></li>
+  </ul>
+  <button class="nav-cta">Get Access</button>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-text">
+    <div class="hero-tag">Spatial Intelligence Platform</div>
+    <h1>Map the world,<br/><em>decode the future</em></h1>
+    <p class="hero-desc">
+      GeoVista unifies satellite imagery, vector data, and real-time sensor streams
+      into a single intelligence layer — built for analysts, scientists, and engineers
+      who think in coordinates.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary">Start Mapping</button>
+      <button class="btn-ghost">View Demo ↗</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num">4.2<span>B+</span></div>
+        <div class="stat-label">Data Points Daily</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">187<span>+</span></div>
+        <div class="stat-label">Countries Covered</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">0.3<span>m</span></div>
+        <div class="stat-label">Resolution</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="globe-wrap">
+      <div class="orbit orbit-1">
+        <div class="sat" style="top:-3px; left:50%;"></div>
+      </div>
+      <div class="orbit orbit-2">
+        <div class="sat" style="top:-3px; left:25%; background:var(--accent2); box-shadow:0 0 8px var(--accent2);"></div>
+      </div>
+      <div class="orbit orbit-3">
+        <div class="sat" style="bottom:-3px; left:70%; background:var(--accent3); box-shadow:0 0 8px var(--accent3);"></div>
+      </div>
+
+      <!-- Globe SVG -->
+      <svg class="globe-svg" viewBox="0 0 480 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="globeGrad" cx="40%" cy="35%">
+            <stop offset="0%" stop-color="#0d2137"/>
+            <stop offset="100%" stop-color="#04080f"/>
+          </radialGradient>
+          <radialGradient id="glow" cx="50%" cy="50%">
+            <stop offset="0%" stop-color="rgba(0,229,255,0.3)"/>
+            <stop offset="100%" stop-color="rgba(0,229,255,0)"/>
+          </radialGradient>
+          <clipPath id="circle"><circle cx="240" cy="240" r="188"/></clipPath>
+          <filter id="blur4"><feGaussianBlur stdDeviation="4"/></filter>
+          <filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter>
+        </defs>
+
+        <!-- Outer glow -->
+        <circle cx="240" cy="240" r="210" fill="url(#glow)" filter="url(#blur4)"/>
+
+        <!-- Globe body -->
+        <circle cx="240" cy="240" r="188" fill="url(#globeGrad)"/>
+        <circle cx="240" cy="240" r="188" fill="none" stroke="rgba(0,229,255,0.25)" stroke-width="1"/>
+
+        <!-- Latitude / longitude lines clipped to globe -->
+        <g clip-path="url(#circle)" stroke="rgba(0,229,255,0.08)" stroke-width="0.8">
+          <!-- Latitudes -->
+          <ellipse cx="240" cy="240" rx="188" ry="60"/>
+          <ellipse cx="240" cy="240" rx="188" ry="110"/>
+          <ellipse cx="240" cy="240" rx="188" ry="155"/>
+          <ellipse cx="240" cy="240" rx="188" ry="185"/>
+          <line x1="52" y1="240" x2="428" y2="240"/>
+          <!-- Longitudes -->
+          <line x1="240" y1="52" x2="240" y2="428"/>
+          <ellipse cx="240" cy="240" rx="60" ry="188"/>
+          <ellipse cx="240" cy="240" rx="110" ry="188"/>
+          <ellipse cx="240" cy="240" rx="155" ry="188"/>
+        </g>
+
+        <!-- Stylized landmasses -->
+        <g clip-path="url(#circle)" fill="rgba(0,229,255,0.12)" stroke="rgba(0,229,255,0.25)" stroke-width="0.8">
+          <!-- Americas rough -->
+          <path d="M140 130 L155 120 L170 125 L175 145 L165 170 L160 195 L155 220 L145 240 L135 260 L130 285 L140 310 L150 320 L145 340 L135 355 L120 345 L115 320 L120 295 L115 270 L110 245 L115 220 L120 195 L125 165 L135 140 Z"/>
+          <!-- Europe/Africa -->
+          <path d="M235 110 L255 105 L275 115 L285 135 L280 160 L270 175 L265 200 L270 225 L275 255 L270 285 L260 310 L250 340 L240 360 L230 345 L225 315 L230 285 L235 255 L230 225 L225 200 L220 175 L215 150 L220 130 Z"/>
+          <!-- Asia -->
+          <path d="M285 110 L320 100 L355 110 L375 130 L385 155 L380 180 L365 195 L360 220 L365 245 L360 265 L345 275 L325 270 L305 260 L290 240 L280 215 L275 190 L280 165 L285 140 Z"/>
+          <!-- Australia -->
+          <path d="M320 295 L345 285 L370 290 L385 310 L380 335 L360 350 L335 345 L315 330 L310 310 Z"/>
+        </g>
+
+        <!-- Glow dots on hotspots -->
+        <g filter="url(#blur2)">
+          <circle cx="160" cy="180" r="4" fill="var(--accent)" opacity=".9"/>
+          <circle cx="255" cy="155" r="3.5" fill="var(--accent)" opacity=".8"/>
+          <circle cx="330" cy="170" r="5" fill="var(--accent)" opacity=".95"/>
+          <circle cx="350" cy="315" r="3" fill="var(--accent2)" opacity=".8"/>
+          <circle cx="140" cy="300" r="3" fill="var(--accent3)" opacity=".8"/>
+          <circle cx="200" cy="240" r="2.5" fill="var(--accent2)" opacity=".7"/>
+        </g>
+
+        <!-- Hard dots -->
+        <circle cx="160" cy="180" r="2" fill="var(--accent)"/>
+        <circle cx="255" cy="155" r="1.8" fill="var(--accent)"/>
+        <circle cx="330" cy="170" r="2.5" fill="var(--accent)"/>
+        <circle cx="350" cy="315" r="1.5" fill="var(--accent2)"/>
+        <circle cx="140" cy="300" r="1.5" fill="var(--accent3)"/>
+
+        <!-- Connection lines between hotspots -->
+        <g stroke="rgba(0,229,255,0.2)" stroke-width="0.8" stroke-dasharray="4 4">
+          <line x1="160" y1="180" x2="255" y2="155"/>
+          <line x1="255" y1="155" x2="330" y2="170"/>
+          <line x1="330" y1="170" x2="350" y2="315"/>
+        </g>
+
+        <!-- Shine -->
+        <ellipse cx="190" cy="170" rx="60" ry="35" fill="rgba(255,255,255,0.04)" transform="rotate(-20,190,170)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div id="ticker">
+  <div class="ticker-inner" id="tickerInner">
+    <div class="ticker-item">Satellite Imagery Updated</div>
+    <div class="ticker-item">4,217 Active Data Streams</div>
+    <div class="ticker-item">Sub-Meter Resolution</div>
+    <div class="ticker-item">Real-Time Weather Overlays</div>
+    <div class="ticker-item">Climate Risk Modeling</div>
+    <div class="ticker-item">Urban Growth Analytics</div>
+    <div class="ticker-item">Global Forest Coverage</div>
+    <div class="ticker-item">Marine Boundary Mapping</div>
+    <div class="ticker-item">Satellite Imagery Updated</div>
+    <div class="ticker-item">4,217 Active Data Streams</div>
+    <div class="ticker-item">Sub-Meter Resolution</div>
+    <div class="ticker-item">Real-Time Weather Overlays</div>
+    <div class="ticker-item">Climate Risk Modeling</div>
+    <div class="ticker-item">Urban Growth Analytics</div>
+    <div class="ticker-item">Global Forest Coverage</div>
+    <div class="ticker-item">Marine Boundary Mapping</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">Core Platform</div>
+  <h2 class="section-title">Everything spatial,<br/>in one layer</h2>
+  <p class="section-sub">From raw satellite pixels to actionable intelligence — a complete stack for geospatial analysis at any scale.</p>
+
+  <div class="features-grid reveal">
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+      </svg>
+      <div class="feat-title">Live Satellite Feeds</div>
+      <div class="feat-desc">Ingest multispectral and SAR imagery from 40+ satellite constellations. Updated every 15 minutes for monitored areas of interest.</div>
+      <div class="feat-num">01</div>
+    </div>
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+      </svg>
+      <div class="feat-title">Vector Intelligence</div>
+      <div class="feat-desc">Fuse administrative boundaries, infrastructure networks, road topology, and custom datasets with automatic conflict resolution.</div>
+      <div class="feat-num">02</div>
+    </div>
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <div class="feat-title">Terrain & Elevation</div>
+      <div class="feat-desc">Global DEM datasets at 1m, 10m, and 30m resolution. Slope, aspect, viewshed, and hydrological analyses built-in.</div>
+      <div class="feat-num">03</div>
+    </div>
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+      </svg>
+      <div class="feat-title">AI Change Detection</div>
+      <div class="feat-desc">Deep learning models flag deforestation, construction, flooding, and urban growth automatically — no manual configuration needed.</div>
+      <div class="feat-num">04</div>
+    </div>
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      <div class="feat-title">Spatial SQL & APIs</div>
+      <div class="feat-desc">Query billions of features with PostGIS-compatible SQL. REST, GraphQL, and WebSocket APIs for real-time applications and dashboards.</div>
+      <div class="feat-num">05</div>
+    </div>
+    <div class="feat-card">
+      <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <div class="feat-title">Access Control & Compliance</div>
+      <div class="feat-desc">Fine-grained RBAC, audit logs, data residency controls, and ITAR / GDPR compliance modes for sensitive operations.</div>
+      <div class="feat-num">06</div>
+    </div>
+  </div>
+</section>
+
+<!-- DATA SECTION -->
+<section id="data">
+  <div class="section-label">Data Architecture</div>
+  <h2 class="section-title">The world's spatial data,<br/>structured for intelligence</h2>
+  <p class="section-sub">Every byte indexed, versioned, and accessible at the speed you need.</p>
+
+  <div class="bento reveal">
+    <div class="bento-card bc-1">
+      <div class="bento-tag">Coverage</div>
+      <div class="bento-title">Global Data Mosaic</div>
+      <div class="bento-desc">Seamless base layer spanning every landmass — updated weekly from 12 satellite sources.</div>
+      <div class="mini-map">
+        <svg viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg">
+          <rect width="300" height="120" fill="#04080f"/>
+          <!-- Simple world outline suggestion -->
+          <path d="M10 60 Q50 30 90 55 Q120 75 150 55 Q190 30 230 50 Q260 65 290 50" stroke="rgba(0,229,255,0.4)" stroke-width="1" fill="none"/>
+          <path d="M30 75 Q60 90 100 80 Q130 72 160 78 Q200 88 240 75 Q265 68 285 72" stroke="rgba(0,229,255,0.2)" stroke-width="1" fill="none"/>
+          <rect x="20" y="45" width="60" height="35" rx="2" fill="rgba(0,229,255,0.07)" stroke="rgba(0,229,255,0.15)" stroke-width="0.5"/>
+          <rect x="100" y="38" width="80" height="45" rx="2" fill="rgba(0,229,255,0.07)" stroke="rgba(0,229,255,0.15)" stroke-width="0.5"/>
+          <rect x="200" y="35" width="85" height="50" rx="2" fill="rgba(57,255,143,0.06)" stroke="rgba(57,255,143,0.2)" stroke-width="0.5"/>
+          <circle cx="50" cy="62" r="2" fill="var(--accent)"/>
+          <circle cx="145" cy="60" r="2.5" fill="var(--accent)"/>
+          <circle cx="242" cy="58" r="2" fill="var(--accent2)"/>
+          <!-- scan line -->
+          <line x1="0" y1="0" x2="300" y2="0" stroke="rgba(0,229,255,0.5)" stroke-width="1">
+            <animateTransform attributeName="transform" type="translate" from="0,0" to="0,120" dur="3s" repeatCount="indefinite"/>
+          </line>
+        </svg>
+      </div>
+    </div>
+    <div class="bento-card bc-2">
+      <div class="bento-tag">Throughput</div>
+      <div class="bento-title">4.2 Billion Events Ingested Daily</div>
+      <div class="bento-desc">Stream processing pipeline handles peaks of 120K events/sec with &lt;80ms p99 latency globally.</div>
+      <div class="bar-chart">
+        <div class="bar" style="height:45%; animation-delay:.05s"></div>
+        <div class="bar" style="height:62%; animation-delay:.1s"></div>
+        <div class="bar" style="height:55%; animation-delay:.15s"></div>
+        <div class="bar" style="height:78%; animation-delay:.2s"></div>
+        <div class="bar" style="height:69%; animation-delay:.25s"></div>
+        <div class="bar" style="height:88%; animation-delay:.3s"></div>
+        <div class="bar" style="height:74%; animation-delay:.35s"></div>
+        <div class="bar" style="height:95%; animation-delay:.4s; background:linear-gradient(to top,var(--accent2),rgba(57,255,143,.3))"></div>
+        <div class="bar" style="height:82%; animation-delay:.45s"></div>
+        <div class="bar" style="height:70%; animation-delay:.5s"></div>
+        <div class="bar" style="height:58%; animation-delay:.55s"></div>
+        <div class="bar" style="height:66%; animation-delay:.6s"></div>
+        <div class="bar" style="height:91%; animation-delay:.65s; background:linear-gradient(to top,var(--accent2),rgba(57,255,143,.3))"></div>
+        <div class="bar" style="height:77%; animation-delay:.7s"></div>
+        <div class="bar" style="height:83%; animation-delay:.75s"></div>
+        <div class="bar" style="height:100%; animation-delay:.8s; background:linear-gradient(to top,var(--accent),rgba(0,229,255,.3))"></div>
+      </div>
+    </div>
+    <div class="bento-card bc-3">
+      <div class="bento-tag">Layers Active</div>
+      <div class="bento-title">Active Sensor Grid</div>
+      <div class="bento-desc">Currently monitoring 2,847 of 3,000 cells.</div>
+      <div class="dot-grid" id="dotGrid"></div>
+    </div>
+    <div class="bento-card bc-4">
+      <div class="bento-tag">Accuracy</div>
+      <div class="bento-title">99.7% Uptime SLA</div>
+      <div class="bento-desc">Multi-region redundancy across 6 cloud zones ensures your spatial queries never wait.</div>
+    </div>
+    <div class="bento-card bc-5">
+      <div class="bento-tag">Formats</div>
+      <div class="bento-title">Native Geo Formats</div>
+      <div class="bento-desc">GeoJSON · GeoTIFF · Shapefile · PMTiles · COG · STAC · WMS/WMTS · OGC API</div>
+    </div>
+    <div class="bento-card bc-6">
+      <div class="bento-tag">Integrations</div>
+      <div class="bento-title">Works With Your Stack</div>
+      <div class="bento-desc">Native connectors for QGIS, ArcGIS, Python (GeoPandas, Shapely), R, JavaScript (MapLibre, Deck.gl), and Jupyter notebooks. REST + streaming APIs for everything else.</div>
+    </div>
+    <div class="bento-card bc-7">
+      <div class="bento-tag">Storage</div>
+      <div class="bento-title">800+ PB of Archived Imagery</div>
+      <div class="bento-desc">Historical record back to 1972. Scene-level access with time-series change analysis.</div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section id="usecases">
+  <div class="section-label">Solutions</div>
+  <h2 class="section-title">Built for every<br/>spatial problem</h2>
+  <p class="section-sub">From climate science to logistics optimization, GeoVista powers decisions that require ground truth.</p>
+
+  <div class="cases-grid reveal">
+    <div class="case-card">
+      <div class="case-num">01 / 06</div>
+      <div class="case-title">Climate & Environmental Monitoring</div>
+      <div class="case-desc">Track deforestation, glacier retreat, sea-level change, and wildfire progression with continuous multi-decade time series and automated anomaly alerts.</div>
+      <div class="case-tags">
+        <span class="tag">NDVI Analysis</span>
+        <span class="tag">Carbon Estimation</span>
+        <span class="tag">Flood Mapping</span>
+      </div>
+    </div>
+    <div class="case-card">
+      <div class="case-num">02 / 06</div>
+      <div class="case-title">Urban Planning & Infrastructure</div>
+      <div class="case-desc">Model land-use change, simulate traffic flow, assess infrastructure resilience, and identify optimal siting for energy, transit, and housing projects.</div>
+      <div class="case-tags">
+        <span class="tag">3D City Models</span>
+        <span class="tag">Zoning Analysis</span>
+        <span class="tag">Shadow Mapping</span>
+      </div>
+    </div>
+    <div class="case-card">
+      <div class="case-num">03 / 06</div>
+      <div class="case-title">Supply Chain & Logistics</div>
+      <div class="case-desc">Monitor shipping lanes, warehouse occupancy, and port congestion in real time. Detect supply disruptions before they reach your P&L.</div>
+      <div class="case-tags">
+        <span class="tag">AIS Tracking</span>
+        <span class="tag">Route Optimization</span>
+        <span class="tag">Facility Detection</span>
+      </div>
+    </div>
+    <div class="case-card">
+      <div class="case-num">04 / 06</div>
+      <div class="case-title">Agriculture & Precision Farming</div>
+      <div class="case-desc">Field-level crop health monitoring using multispectral indices. Yield prediction, irrigation scheduling, and pest risk heat maps delivered per-field.</div>
+      <div class="case-tags">
+        <span class="tag">Crop Classification</span>
+        <span class="tag">Soil Moisture</span>
+        <span class="tag">Yield Forecasting</span>
+      </div>
+    </div>
+    <div class="case-card">
+      <div class="case-num">05 / 06</div>
+      <div class="case-title">Insurance & Risk Modeling</div>
+      <div class="case-desc">Assess property exposure to natural hazards, track real-time event footprints, and automate claims validation with pre/post disaster imagery comparison.</div>
+      <div class="case-tags">
+        <span class="tag">Catastrophe Modeling</span>
+        <span class="tag">Exposure Assessment</span>
+        <span class="tag">Claims Automation</span>
+      </div>
+    </div>
+    <div class="case-card">
+      <div class="case-num">06 / 06</div>
+      <div class="case-title">Defense & Intelligence</div>
+      <div class="case-desc">Air-gapped deployment options, ITAR-compliant data handling, and classified network integration for national security and defense applications.</div>
+      <div class="case-tags">
+        <span class="tag">Sovereign Cloud</span>
+        <span class="tag">ITAR Compliant</span>
+        <span class="tag">Change Detection</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="section-label">Get Started</div>
+  <h2 class="cta-title">Your map.<br/>Your intelligence.</h2>
+  <p class="cta-sub">Join 3,400+ organizations mapping, analyzing, and acting on spatial data at global scale.</p>
+  <div class="cta-actions">
+    <button class="btn-primary">Start Free Trial</button>
+    <button class="btn-ghost">Talk to Sales</button>
+  </div>
+</section>
+
+<!-- MAP SECTION -->
+<section id="maps">
+  <div class="map-header">
+    <div>
+      <div class="map-header-title">Bhuvan Open Data Explorer</div>
+      <div class="map-header-sub">ISRO National Remote Sensing Centre — Open WMS Layers</div>
+    </div>
+    <div class="map-badge">Live Feed Active</div>
+  </div>
+
+  <div class="map-workspace">
+    <!-- LEFT PANEL -->
+    <div class="map-panel">
+
+      <!-- Bhuvan source info -->
+      <div class="panel-section">
+        <div class="bhuvan-badge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+          </svg>
+          <div class="bhuvan-badge-text">
+            <strong>BHUVAN / ISRO · NRSC</strong><br/>
+            Open geospatial data portal — satellite imagery, thematic layers &amp; terrain served via WMS.
+          </div>
+        </div>
+      </div>
+
+      <!-- Basemap -->
+      <div class="panel-section">
+        <div class="panel-section-title">Basemap</div>
+        <div class="basemap-grid">
+          <div class="basemap-opt active" onclick="setBasemap('osm',this)">
+            <svg class="basemap-thumb" viewBox="0 0 80 36"><rect width="80" height="36" fill="#0d1f30"/><rect x="5" y="10" width="30" height="16" rx="1" fill="rgba(0,229,255,.15)" stroke="rgba(0,229,255,.3)" stroke-width=".5"/><rect x="45" y="8" width="28" height="20" rx="1" fill="rgba(0,229,255,.1)" stroke="rgba(0,229,255,.2)" stroke-width=".5"/><line x1="0" y1="26" x2="80" y2="26" stroke="rgba(0,229,255,.1)" stroke-width=".5"/></svg>
+            OSM Street
+          </div>
+          <div class="basemap-opt" onclick="setBasemap('satellite',this)">
+            <svg class="basemap-thumb" viewBox="0 0 80 36"><rect width="80" height="36" fill="#071012"/><rect x="10" y="6" width="60" height="24" rx="1" fill="rgba(57,255,143,.07)" stroke="rgba(57,255,143,.15)" stroke-width=".5"/><circle cx="28" cy="18" r="6" fill="rgba(57,255,143,.1)"/><circle cx="55" cy="14" r="4" fill="rgba(0,229,255,.08)"/></svg>
+            Satellite
+          </div>
+          <div class="basemap-opt" onclick="setBasemap('dark',this)">
+            <svg class="basemap-thumb" viewBox="0 0 80 36"><rect width="80" height="36" fill="#04080f"/><line x1="0" y1="12" x2="80" y2="12" stroke="rgba(0,229,255,.08)" stroke-width=".5"/><line x1="0" y1="24" x2="80" y2="24" stroke="rgba(0,229,255,.08)" stroke-width=".5"/><line x1="26" y1="0" x2="26" y2="36" stroke="rgba(0,229,255,.08)" stroke-width=".5"/><line x1="53" y1="0" x2="53" y2="36" stroke="rgba(0,229,255,.08)" stroke-width=".5"/></svg>
+            Dark Grid
+          </div>
+          <div class="basemap-opt" onclick="setBasemap('topo',this)">
+            <svg class="basemap-thumb" viewBox="0 0 80 36"><rect width="80" height="36" fill="#0c1a10"/><path d="M0 30 Q20 10 40 20 Q60 30 80 8" stroke="rgba(57,255,143,.4)" stroke-width="1" fill="none"/><path d="M0 36 Q25 18 45 26 Q65 34 80 16" stroke="rgba(57,255,143,.2)" stroke-width="1" fill="none"/></svg>
+            Terrain
+          </div>
+        </div>
+      </div>
+
+      <!-- Bhuvan WMS Layers -->
+      <div class="panel-section">
+        <div class="panel-section-title">Bhuvan WMS Layers</div>
+
+        <div class="layer-item">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#00e5ff;box-shadow:0 0 5px #00e5ff"></div>
+            <div>
+              <div class="layer-name">India Admin Boundaries</div>
+              <div class="layer-source">BHUVAN · State &amp; District</div>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="lyr-admin" checked onchange="toggleLayer('admin',this)"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="opacity-row">
+          <span class="opacity-label">Opacity</span>
+          <input type="range" min="0" max="100" value="80" oninput="setOpacity('admin',this.value)">
+        </div>
+
+        <div class="layer-item" style="margin-top:.8rem">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#39ff8f;box-shadow:0 0 5px #39ff8f"></div>
+            <div>
+              <div class="layer-name">Land Use / Land Cover</div>
+              <div class="layer-source">BHUVAN · LULC 2005–06</div>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="lyr-lulc" onchange="toggleLayer('lulc',this)"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="opacity-row">
+          <span class="opacity-label">Opacity</span>
+          <input type="range" min="0" max="100" value="70" oninput="setOpacity('lulc',this.value)">
+        </div>
+
+        <div class="layer-item" style="margin-top:.8rem">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#ff6b35;box-shadow:0 0 5px #ff6b35"></div>
+            <div>
+              <div class="layer-name">Soil Resource Mapping</div>
+              <div class="layer-source">BHUVAN · NBSS&amp;LUP</div>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="lyr-soil" onchange="toggleLayer('soil',this)"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="opacity-row">
+          <span class="opacity-label">Opacity</span>
+          <input type="range" min="0" max="100" value="65" oninput="setOpacity('soil',this.value)">
+        </div>
+
+        <div class="layer-item" style="margin-top:.8rem">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#a78bfa;box-shadow:0 0 5px #a78bfa"></div>
+            <div>
+              <div class="layer-name">River Basins</div>
+              <div class="layer-source">BHUVAN · Hydrology</div>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="lyr-rivers" onchange="toggleLayer('rivers',this)"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="opacity-row">
+          <span class="opacity-label">Opacity</span>
+          <input type="range" min="0" max="100" value="75" oninput="setOpacity('rivers',this.value)">
+        </div>
+
+        <div class="layer-item" style="margin-top:.8rem">
+          <div class="layer-left">
+            <div class="layer-dot" style="background:#fbbf24;box-shadow:0 0 5px #fbbf24"></div>
+            <div>
+              <div class="layer-name">Forest Cover</div>
+              <div class="layer-source">BHUVAN · FSI India</div>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="lyr-forest" onchange="toggleLayer('forest',this)"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="opacity-row">
+          <span class="opacity-label">Opacity</span>
+          <input type="range" min="0" max="100" value="70" oninput="setOpacity('forest',this.value)">
+        </div>
+      </div>
+
+      <!-- Coordinates -->
+      <div class="panel-section">
+        <div class="panel-section-title">Cursor Coordinates</div>
+        <div class="coords-box">
+          <div><span class="coords-label">LAT  </span><span id="coord-lat">20.5937° N</span></div>
+          <div><span class="coords-label">LON  </span><span id="coord-lon">78.9629° E</span></div>
+          <div><span class="coords-label">ZOOM </span><span id="coord-zoom">5</span></div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="panel-section">
+        <div class="panel-section-title">Quick Legend</div>
+        <div style="font-size:.75rem;color:var(--muted);line-height:2">
+          <div>🔵 Administrative Boundaries</div>
+          <div>🟢 Land Use / Land Cover</div>
+          <div>🟠 Soil Resources</div>
+          <div>🟣 River Basins</div>
+          <div>🟡 Forest Cover</div>
+        </div>
+      </div>
+
+    </div><!-- /map-panel -->
+
+    <!-- MAP -->
+    <div class="map-container">
+      <div id="bhuvan-map"></div>
+      <div class="map-toolbar">
+        <button class="map-btn" onclick="bhuvanMap.zoomIn()" title="Zoom In">+</button>
+        <button class="map-btn" onclick="bhuvanMap.zoomOut()" title="Zoom Out">−</button>
+        <button class="map-btn" onclick="resetView()" title="Reset View" style="font-size:.6rem;letter-spacing:0">⌂</button>
+        <button class="map-btn" onclick="locateUser()" title="My Location" style="font-size:.75rem">◎</button>
+      </div>
+      <div class="map-scale" id="map-scale">Scale: 1:5,000,000</div>
+      <div class="map-coords-bar" id="map-coords-bar">Hover map for coordinates</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Geo<span>Vista</span></div>
+  <div class="footer-links">
+    <a href="#">Documentation</a>
+    <a href="#">API Reference</a>
+    <a href="#">Status</a>
+    <a href="#">Privacy</a>
+  </div>
+  <div class="footer-copy">© 2026 GeoVista Inc. All rights reserved.</div>
+</footer>
+
+<script>
+  // Cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursor-ring');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+    setTimeout(() => {
+      ring.style.left = e.clientX + 'px';
+      ring.style.top = e.clientY + 'px';
+    }, 80);
+  });
+  document.querySelectorAll('button, a').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.width = '20px'; cursor.style.height = '20px';
+      ring.style.width = '52px'; ring.style.height = '52px';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.width = '12px'; cursor.style.height = '12px';
+      ring.style.width = '36px'; ring.style.height = '36px';
+    });
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.12 });
+  reveals.forEach(r => obs.observe(r));
+
+  // Dot grid
+  const grid = document.getElementById('dotGrid');
+  for (let i = 0; i < 100; i++) {
+    const dot = document.createElement('span');
+    const r = Math.random();
+    if (r > 0.7) dot.classList.add('active');
+    else if (r > 0.4) dot.classList.add('semi');
+    grid.appendChild(dot);
+  }
+
+  // Animate dots randomly
+  setInterval(() => {
+    const dots = grid.querySelectorAll('span');
+    const idx = Math.floor(Math.random() * dots.length);
+    dots[idx].classList.toggle('active');
+  }, 400);
+</script>
+
+<!-- Leaflet JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ── Basemap tile layers ──
+const basemaps = {
+  osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }),
+  satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics',
+    maxZoom: 19
+  }),
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://carto.com">CARTO</a>',
+    maxZoom: 19, subdomains: 'abcd'
+  }),
+  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://opentopomap.org">OpenTopoMap</a>',
+    maxZoom: 17
+  })
+};
+
+// ── Bhuvan WMS endpoint ──
+const BHUVAN_WMS = 'https://bhuvan-vec1.nrsc.gov.in/bhuvan/wms';
+const BHUVAN_WMS2 = 'https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms';
+
+// ── Bhuvan WMS Layers ──
+const wmsLayers = {
+  admin: L.tileLayer.wms(BHUVAN_WMS, {
+    layers: 'india3',
+    format: 'image/png', transparent: true,
+    version: '1.1.1', opacity: 0.8,
+    attribution: '© <a href="https://bhuvan.nrsc.gov.in">ISRO Bhuvan</a>'
+  }),
+  lulc: L.tileLayer.wms(BHUVAN_WMS2, {
+    layers: 'lulc50k_1112',
+    format: 'image/png', transparent: true,
+    version: '1.1.1', opacity: 0.7,
+    attribution: '© <a href="https://bhuvan.nrsc.gov.in">ISRO Bhuvan</a>'
+  }),
+  soil: L.tileLayer.wms(BHUVAN_WMS2, {
+    layers: 'soil',
+    format: 'image/png', transparent: true,
+    version: '1.1.1', opacity: 0.65,
+    attribution: '© <a href="https://bhuvan.nrsc.gov.in">ISRO Bhuvan</a>'
+  }),
+  rivers: L.tileLayer.wms(BHUVAN_WMS, {
+    layers: 'river',
+    format: 'image/png', transparent: true,
+    version: '1.1.1', opacity: 0.75,
+    attribution: '© <a href="https://bhuvan.nrsc.gov.in">ISRO Bhuvan</a>'
+  }),
+  forest: L.tileLayer.wms(BHUVAN_WMS2, {
+    layers: 'forest_cover_2017',
+    format: 'image/png', transparent: true,
+    version: '1.1.1', opacity: 0.7,
+    attribution: '© <a href="https://bhuvan.nrsc.gov.in">ISRO Bhuvan</a>'
+  })
+};
+
+// ── Init Map ──
+const bhuvanMap = L.map('bhuvan-map', {
+  center: [20.5937, 78.9629],
+  zoom: 5,
+  zoomControl: false,
+  layers: [basemaps.dark, wmsLayers.admin]
+});
+
+// ── Cursor coordinates ──
+bhuvanMap.on('mousemove', function(e) {
+  const lat = e.latlng.lat.toFixed(4);
+  const lon = e.latlng.lng.toFixed(4);
+  document.getElementById('coord-lat').textContent = Math.abs(lat) + '° ' + (lat >= 0 ? 'N' : 'S');
+  document.getElementById('coord-lon').textContent = Math.abs(lon) + '° ' + (lon >= 0 ? 'E' : 'W');
+  document.getElementById('coord-zoom').textContent = bhuvanMap.getZoom();
+  document.getElementById('map-coords-bar').textContent =
+    'Lat: ' + lat + '  Lon: ' + lon + '  Zoom: ' + bhuvanMap.getZoom();
+});
+
+bhuvanMap.on('zoom', function() {
+  document.getElementById('coord-zoom').textContent = bhuvanMap.getZoom();
+  const z = bhuvanMap.getZoom();
+  const scales = {1:'1:500M',2:'1:250M',3:'1:130M',4:'1:70M',5:'1:35M',6:'1:18M',7:'1:9M',8:'1:4.5M',9:'1:2.3M',10:'1:1.1M',11:'1:550K',12:'1:280K',13:'1:140K',14:'1:70K',15:'1:35K',16:'1:18K',17:'1:9K',18:'1:4.5K'};
+  document.getElementById('map-scale').textContent = 'Scale: ' + (scales[z] || '1:1K');
+});
+
+// ── Layer toggles ──
+function toggleLayer(name, cb) {
+  if (cb.checked) bhuvanMap.addLayer(wmsLayers[name]);
+  else bhuvanMap.removeLayer(wmsLayers[name]);
+}
+
+function setOpacity(name, val) {
+  wmsLayers[name].setOpacity(val / 100);
+}
+
+// ── Basemap switch ──
+let currentBase = basemaps.dark;
+function setBasemap(name, el) {
+  bhuvanMap.removeLayer(currentBase);
+  currentBase = basemaps[name];
+  bhuvanMap.addLayer(currentBase);
+  currentBase.bringToBack();
+  document.querySelectorAll('.basemap-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Reset ──
+function resetView() {
+  bhuvanMap.setView([20.5937, 78.9629], 5);
+}
+
+// ── Locate user ──
+function locateUser() {
+  bhuvanMap.locate({ setView: true, maxZoom: 12 });
+}
+
+// ── Nav smooth scroll to map ──
+document.getElementById('nav-maps-link').addEventListener('click', function(e) {
+  e.preventDefault();
+  document.getElementById('maps').scrollIntoView({ behavior: 'smooth' });
+  setTimeout(() => bhuvanMap.invalidateSize(), 600);
+});
+</script>
+</body>
+</html>
